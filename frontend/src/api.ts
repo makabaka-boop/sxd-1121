@@ -11,6 +11,14 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+function extractErrorMessage(detail: unknown): string {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ');
+  }
+  return JSON.stringify(detail);
+}
+
 async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
     ...options,
@@ -27,7 +35,7 @@ async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T>
   }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: '请求失败' }));
-    throw new Error(error.detail || '请求失败');
+    throw new Error(extractErrorMessage(error.detail) || '请求失败');
   }
   return response.json();
 }
@@ -44,7 +52,7 @@ export const authApi = {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: '登录失败' }));
-      throw new Error(error.detail || '登录失败');
+      throw new Error(extractErrorMessage(error.detail) || '登录失败');
     }
     return response.json();
   },
