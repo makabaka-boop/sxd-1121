@@ -95,5 +95,29 @@ export interface NodeAggregation {
   node_type: string;
   summary: InventorySummary;
   recent_changes: ChangeLog[];
+  recent_transfers: TransferRecord[];
   children: NodeAggregation[];
+}
+
+export interface TransferRecord {
+  id: number;
+  item_id: number;
+  sku: string;
+  product_name: string;
+  from_node_id: number;
+  from_node_name: string;
+  to_node_id: number;
+  to_node_name: string;
+  quantity: number;
+  remark: string;
+  user_id: number;
+  username?: string;
+  created_at: string;
+}
+
+export interface TransferCreate {
+  item_id: number;
+  to_node_id: number;
+  quantity: number;
+  remark?: string;
 }

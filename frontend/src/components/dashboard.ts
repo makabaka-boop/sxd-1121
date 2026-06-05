@@ -1,4 +1,4 @@
-import type { InventoryItem, ChangeLog } from '../types';
+import type { InventoryItem, ChangeLog, TransferRecord } from '../types';
 import { inventoryApi } from '../api';
 
 export function createDashboard(): HTMLElement {
@@ -8,11 +8,12 @@ export function createDashboard(): HTMLElement {
 }
 
 export async function renderDashboard(container: HTMLElement): Promise<void> {
-  const [allItems, oosItems, lowItems, recentLogs] = await Promise.all([
+  const [allItems, oosItems, lowItems, recentLogs, recentTransfers] = await Promise.all([
     inventoryApi.listItems(),
     inventoryApi.listItems({ out_of_stock: true }),
     inventoryApi.listItems({ low_stock: true }),
     inventoryApi.getChangeLogs({ limit: 15 }),
+    inventoryApi.listTransfers({ limit: 10 }),
   ]);
 
   const totalQuantity = allItems.reduce((sum, i) => sum + i.quantity, 0);
@@ -101,6 +102,29 @@ export async function renderDashboard(container: HTMLElement): Promise<void> {
           `).join('')}
         </tbody>
       </table>` : '<p class="empty-text">暂无变更记录</p>'}
+    </div>
+
+    <div class="dashboard-section">
+      <h3>🔄 近期调拨动态</h3>
+      ${recentTransfers.length > 0 ? `
+      <table class="data-table">
+        <thead>
+          <tr><th>商品</th><th>调出节点</th><th>调入节点</th><th>数量</th><th>备注</th><th>操作人</th><th>时间</th></tr>
+        </thead>
+        <tbody>
+          ${recentTransfers.map(t => `
+            <tr class="row-transfer">
+              <td>${t.product_name} (${t.sku})</td>
+              <td><span class="transfer-direction transfer-out">${t.from_node_name}</span></td>
+              <td><span class="transfer-direction transfer-in">${t.to_node_name}</span></td>
+              <td><strong>${t.quantity}</strong></td>
+              <td>${t.remark || '-'}</td>
+              <td>${t.username || '-'}</td>
+              <td>${formatTime(t.created_at)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>` : '<p class="empty-text">暂无调拨记录</p>'}
     </div>
   `;
 }

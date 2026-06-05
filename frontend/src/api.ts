@@ -1,4 +1,4 @@
-import type { Token, TreeNode, NodeCreate, NodeUpdate, InventoryItem, InventoryItemCreate, InventoryItemUpdate, NodeAggregation, ChangeLog, User } from './types';
+import type { Token, TreeNode, NodeCreate, NodeUpdate, InventoryItem, InventoryItemCreate, InventoryItemUpdate, NodeAggregation, ChangeLog, User, TransferRecord, TransferCreate } from './types';
 
 const API_BASE = '/api';
 
@@ -167,5 +167,20 @@ export const inventoryApi = {
     a.download = 'inventory_export.csv';
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  async transferInventory(data: TransferCreate): Promise<TransferRecord> {
+    return apiRequest('/inventory/transfer', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async listTransfers(params?: { node_id?: number; limit?: number }): Promise<TransferRecord[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.node_id) searchParams.append('node_id', String(params.node_id));
+    if (params?.limit) searchParams.append('limit', String(params.limit));
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return apiRequest(`/inventory/transfers${query}`);
   },
 };

@@ -61,6 +61,7 @@ export async function renderNodeDetail(container: HTMLElement, aggregation: Node
             <th>最低库存</th>
             <th>单位</th>
             <th>状态</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -72,6 +73,7 @@ export async function renderNodeDetail(container: HTMLElement, aggregation: Node
               <td>${item.min_quantity}</td>
               <td>${item.unit}</td>
               <td><span class="status-badge status-${stockStatus(item)}">${statusLabel(item)}</span></td>
+              <td>${item.quantity > 0 ? `<button class="btn btn-xs btn-info btn-transfer-item" data-item-id="${item.id}" data-item-sku="${item.sku}" data-item-name="${item.product_name}" data-item-qty="${item.quantity}" data-item-unit="${item.unit}" title="调拨">🔄 调拨</button>` : ''}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -110,6 +112,36 @@ export async function renderNodeDetail(container: HTMLElement, aggregation: Node
           </div>
         `).join('')}
       </div>
+    </div>` : ''}
+
+    ${aggregation.recent_transfers.length > 0 ? `
+    <div class="detail-section">
+      <h3>🔄 近期调拨记录</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>商品</th><th>方向</th><th>数量</th><th>备注</th><th>操作人</th><th>时间</th></tr>
+        </thead>
+        <tbody>
+          ${aggregation.recent_transfers.map(t => {
+            const isOut = t.from_node_id === aggregation.node_id;
+            return `
+              <tr class="row-transfer-${isOut ? 'out' : 'in'}">
+                <td>${t.product_name} (${t.sku})</td>
+                <td>
+                  ${isOut
+                    ? `<span class="transfer-direction transfer-out">调出 → ${t.to_node_name}</span>`
+                    : `<span class="transfer-direction transfer-in">调入 ← ${t.from_node_name}</span>`
+                  }
+                </td>
+                <td><strong>${t.quantity}</strong></td>
+                <td>${t.remark || '-'}</td>
+                <td>${t.username || '-'}</td>
+                <td>${formatTime(t.created_at)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
     </div>` : ''}
   `;
 }

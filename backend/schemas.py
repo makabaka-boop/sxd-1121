@@ -125,12 +125,39 @@ class ChangeLogResponse(ChangeLogBase):
         from_attributes = True
 
 
+class TransferCreate(BaseModel):
+    item_id: int
+    to_node_id: int
+    quantity: int
+    remark: str = ""
+
+
+class TransferResponse(BaseModel):
+    id: int
+    item_id: int
+    sku: str
+    product_name: str
+    from_node_id: int
+    from_node_name: str
+    to_node_id: int
+    to_node_name: str
+    quantity: int
+    remark: str
+    user_id: int
+    username: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class NodeAggregation(BaseModel):
     node_id: int
     node_name: str
     node_type: str
     summary: InventorySummary
     recent_changes: List[ChangeLogResponse] = []
+    recent_transfers: List[TransferResponse] = []
     children: List["NodeAggregation"] = []
 
 

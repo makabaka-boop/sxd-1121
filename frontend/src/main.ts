@@ -6,7 +6,7 @@ import { createLoginPage } from './components/login';
 import { createTreeView } from './components/tree-view';
 import { createNodeDetail, renderNodeDetail } from './components/node-detail';
 import { createDashboard, renderDashboard } from './components/dashboard';
-import { createModal, createNodeForm, createInventoryForm } from './components/modals';
+import { createModal, createNodeForm, createInventoryForm, createTransferForm } from './components/modals';
 
 const app = document.getElementById('app')!;
 
@@ -159,6 +159,28 @@ async function onNodeSelect(node: TreeNode, mainContent: HTMLElement) {
       });
       mainContent.insertBefore(addInvBtn, mainContent.firstChild);
     }
+
+    mainContent.querySelectorAll('.btn-transfer-item').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const el = btn as HTMLElement;
+        const itemData = {
+          id: Number(el.dataset.itemId),
+          sku: el.dataset.itemSku || '',
+          product_name: el.dataset.itemName || '',
+          quantity: Number(el.dataset.itemQty),
+          unit: el.dataset.itemUnit || '件',
+          node_id: node.id,
+          min_quantity: 0,
+          updated_at: '',
+        };
+        const form = await createTransferForm(itemData, node.id);
+        const modal = createModal('库存调拨', form);
+        document.body.appendChild(modal);
+        form.addEventListener('transfer:completed', () => {
+          onNodeSelect(node, mainContent);
+        });
+      });
+    });
   } catch (err: any) {
     mainContent.innerHTML = `<div class="error-message">加载失败: ${err.message}</div>`;
   }

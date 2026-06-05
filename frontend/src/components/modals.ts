@@ -1,4 +1,4 @@
-import type { TreeNode, NodeCreate } from '../types';
+import type { TreeNode, NodeCreate, InventoryItem } from '../types';
 import { nodesApi, inventoryApi } from '../api';
 
 export function createModal(title: string, content: HTMLElement): HTMLElement {
@@ -163,6 +163,91 @@ export function createInventoryForm(nodeId: number, existingItem?: any): HTMLEle
       if (overlay) overlay.remove();
     } catch (err: any) {
       alert(err.message || '操作失败');
+    }
+  });
+
+  form.querySelector('.modal-cancel-btn')?.addEventListener('click', () => {
+    const overlay = form.closest('.modal-overlay') as HTMLElement;
+    if (overlay) overlay.remove();
+  });
+
+  return form;
+}
+
+export async function createTransferForm(item: InventoryItem, fromNodeId: number): Promise<HTMLElement> {
+  const form = document.createElement('form');
+  form.className = 'transfer-form';
+
+  const allNodes = await nodesApi.listNodes();
+
+  const nodeOptions = allNodes
+    .filter(n => n.id !== fromNodeId)
+    .map(n => `<option value="${n.id}">${n.name} (${n.code})</option>`)
+    .join('');
+
+  form.innerHTML = `
+    <div class="form-group">
+      <label>调拨商品</label>
+      <input type="text" value="${item.product_name} (${item.sku})" disabled />
+    </div>
+    <div class="form-group">
+      <label>当前库存</label>
+      <input type="text" value="${item.quantity} ${item.unit}" disabled />
+    </div>
+    <input type="hidden" name="item_id" value="${item.id}" />
+    <div class="form-group">
+      <label>目标节点 *</label>
+      <select name="to_node_id" required>
+        <option value="">请选择目标节点</option>
+        ${nodeOptions}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>调拨数量 *</label>
+      <input type="number" name="quantity" min="1" max="${item.quantity}" required />
+    </div>
+    <div class="form-group">
+      <label>备注</label>
+      <textarea name="remark" rows="2" placeholder="可选填写调拨原因或备注"></textarea>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">确认调拨</button>
+      <button type="button" class="btn btn-secondary modal-cancel-btn">取消</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const toNodeId = Number(fd.get('to_node_id'));
+    const quantity = Number(fd.get('quantity'));
+    const remark = (fd.get('remark') as string) || '';
+
+    if (!toNodeId) {
+      alert('请选择目标节点');
+      return;
+    }
+    if (!quantity || quantity <= 0) {
+      alert('请输入有效的调拨数量');
+      return;
+    }
+    if (quantity > item.quantity) {
+      alert(`调拨数量不能超过当前库存 (${item.quantity})`);
+      return;
+    }
+
+    try {
+      await inventoryApi.transferInventory({
+        item_id: item.id,
+        to_node_id: toNodeId,
+        quantity,
+        remark,
+      });
+      form.dispatchEvent(new CustomEvent('transfer:completed', { bubbles: true }));
+      const overlay = form.closest('.modal-overlay') as HTMLElement;
+      if (overlay) overlay.remove();
+    } catch (err: any) {
+      alert(err.message || '调拨失败');
     }
   });
 

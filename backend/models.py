@@ -62,3 +62,23 @@ class ChangeLog(Base):
 
     node = relationship("Node", back_populates="change_logs")
     user = relationship("User")
+
+
+class TransferRecord(Base):
+    __tablename__ = "transfer_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("inventory_items.id"), nullable=False)
+    sku = Column(String(50), nullable=False)
+    product_name = Column(String(200), nullable=False)
+    from_node_id = Column(Integer, ForeignKey("nodes.id"), nullable=False)
+    to_node_id = Column(Integer, ForeignKey("nodes.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    remark = Column(Text, default="")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    item = relationship("InventoryItem")
+    from_node = relationship("Node", foreign_keys=[from_node_id])
+    to_node = relationship("Node", foreign_keys=[to_node_id])
+    user = relationship("User")

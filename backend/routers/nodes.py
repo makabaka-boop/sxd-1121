@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db
-from models import Node, InventoryItem, ChangeLog, User
+from models import Node, InventoryItem, ChangeLog, User, TransferRecord
 from schemas import (
     NodeCreate,
     NodeUpdate,
@@ -11,6 +11,7 @@ from schemas import (
     InventorySummary,
     NodeAggregation,
     ChangeLogResponse,
+    TransferResponse,
 )
 from auth import get_current_user, require_role
 
@@ -89,6 +90,37 @@ def build_aggregation_tree(db: Session, node_id: int, depth: int = 0) -> NodeAgg
                 username=user.username if user else None,
             )
         )
+
+    recent_transfer_records = (
+        db.query(TransferRecord)
+        .filter((TransferRecord.from_node_id == node.id) | (TransferRecord.to_node_id == node.id))
+        .order_by(TransferRecord.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    recent_transfers = []
+    for rec in recent_transfer_records:
+        from_node = db.query(Node).filter(Node.id == rec.from_node_id).first()
+        to_node = db.query(Node).filter(Node.id == rec.to_node_id).first()
+        t_user = db.query(User).filter(User.id == rec.user_id).first()
+        recent_transfers.append(
+            TransferResponse(
+                id=rec.id,
+                item_id=rec.item_id,
+                sku=rec.sku,
+                product_name=rec.product_name,
+                from_node_id=rec.from_node_id,
+                from_node_name=from_node.name if from_node else "",
+                to_node_id=rec.to_node_id,
+                to_node_name=to_node.name if to_node else "",
+                quantity=rec.quantity,
+                remark=rec.remark,
+                user_id=rec.user_id,
+                username=t_user.username if t_user else None,
+                created_at=rec.created_at,
+            )
+        )
+
     children = db.query(Node).filter(Node.parent_id == node_id).order_by(Node.sort_order).all()
     child_aggs = [build_aggregation_tree(db, child.id, depth + 1) for child in children]
     return NodeAggregation(
@@ -97,6 +129,7 @@ def build_aggregation_tree(db: Session, node_id: int, depth: int = 0) -> NodeAgg
         node_type=node.node_type,
         summary=summary,
         recent_changes=recent_changes,
+        recent_transfers=recent_transfers,
         children=child_aggs,
     )
 

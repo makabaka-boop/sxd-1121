@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal
-from models import User, Node, InventoryItem
+from models import User, Node, InventoryItem, TransferRecord
 from auth import get_password_hash
 from routers.auth_router import router as auth_router
 from routers.nodes import router as nodes_router
